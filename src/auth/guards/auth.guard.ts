@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  HttpException,
+  Injectable,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { IncomingMessage } from 'http';
 
@@ -9,15 +14,15 @@ export class AuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = this.getRequest<
       IncomingMessage & { user?: Record<string, unknown> }
-    >(context); // you could use FastifyRequest here too
+    >(context);
+
     try {
       const token = this.getToken(request);
-      const user = this.jwtService.verify(token);
-      request.user = user;
+      const user = this.jwtService.verify(token, { secret: '$up3r$3cr3t' });
+
       return true;
     } catch (e) {
-      // return false or throw a specific error if desired
-      return false;
+      throw new HttpException('UNAUTHORIZED', 401);
     }
   }
 
@@ -32,7 +37,7 @@ export class AuthGuard implements CanActivate {
     if (!authorization || Array.isArray(authorization)) {
       throw new Error('Invalid Authorization Header');
     }
-    const [_, token] = authorization.split(' ');
-    return token;
+
+    return authorization;
   }
 }
